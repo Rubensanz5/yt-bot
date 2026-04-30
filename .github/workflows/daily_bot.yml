@@ -2,7 +2,7 @@ name: Daily YouTube Bot
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # 11:00 AM Spain time (UTC+2 verano)
+    - cron: '0 19 * * *'  # 9 PM Spain (CEST) = 3 PM EST — prime time EEUU
   workflow_dispatch:      # permite lanzarlo manualmente desde GitHub
 
 jobs:
