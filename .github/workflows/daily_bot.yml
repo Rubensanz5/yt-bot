@@ -1,0 +1,41 @@
+name: Daily YouTube Bot
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 11:00 AM Spain time (UTC+2 verano)
+  workflow_dispatch:      # permite lanzarlo manualmente desde GitHub
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y ffmpeg fonts-liberation
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore credentials
+        env:
+          YOUTUBE_SECRET_JSON: ${{ secrets.YOUTUBE_SECRET_JSON }}
+          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
+        run: |
+          echo "$YOUTUBE_SECRET_JSON" > youtube_secret.json
+          echo "$YOUTUBE_TOKEN_PICKLE" | base64 -d > token.pickle
+
+      - name: Run bot
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python run_bot.py

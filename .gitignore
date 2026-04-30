@@ -1,0 +1,17 @@
+.env
+*.pickle
+youtube_secret.json
+__pycache__/
+temp_videos/
+temp_shorts/
+*.mp4
+*.mp3
+*.png
+current_script.txt
+current_short.txt
+current_metadata.json
+current_shorts_metadata.json
+topic_tracker.txt
+shorts_tracker.txt
+bot_log.txt
+run_bot.bat
