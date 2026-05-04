@@ -1,11 +1,12 @@
-# script_generator.py
-import anthropic
 import edge_tts
 import asyncio
 import os
 import random
 import json
-from config import ANTHROPIC_API_KEY
+from openai import OpenAI
+from config import OPENAI_API_KEY
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 LEGAL_TOPICS = [
     "What to do if a landlord illegally evicts you",
@@ -53,7 +54,6 @@ VOICES = [
     "en-US-AndrewNeural",
 ]
 
-# Duraciones variables para videos normales
 DURATION_CONFIGS = [
     {"label": "6 minutes", "words": "900-1000"},
     {"label": "8 minutes", "words": "1000-1200"},
@@ -90,9 +90,7 @@ def get_tags():
     ]
 
 def generate_metadata(topic):
-    """Generates a unique description and topic-specific tags via Claude"""
     print("Generating unique metadata...")
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     prompt = f"""Write YouTube metadata for a legal education video about: "{topic}"
 
@@ -112,13 +110,14 @@ DESCRIPTION:
 TAGS:
 tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10"""
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
         max_tokens=600,
-        messages=[{"role": "user", "content": prompt}]
     )
 
-    text = response.content[0].text
+    text = response.choices[0].message.content
+
     desc_pos = text.find("DESCRIPTION:")
     tags_pos = text.find("TAGS:")
 
@@ -136,65 +135,47 @@ tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10"""
 
 
 def generate_script(topic):
-    """Genera guion viral de 6-10 minutos"""
     print(f"Generating script for: {topic}")
 
     config = random.choice(DURATION_CONFIGS)
     print(f"Target duration: {config['label']} (~{config['words']} words)")
-
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     prompt = f"""You are a viral YouTube script writer for a legal education channel called RightsUnlocked.
 
 Write a HIGH-RETENTION script about: {topic}
 
 VIRAL RULES:
-- Hook in first 5 seconds — use shock, a surprising stat, or a question that makes them scared to stop watching
-- Every 20-30 seconds add a new curiosity loop or surprising fact to keep them watching
-- Use simple conversational language, zero legal jargon
-- Add emotional triggers: fear, surprise, relief, urgency
-- Use real scenarios and relatable examples
-- Phrases like: "here's what they don't tell you", "pay attention to this", "most people get this wrong", "this one mistake cost someone $10,000"
-
-STRUCTURE (follow this flow, do NOT write section headers):
-1. Hook — shocking open that makes them need to keep watching
-2. Setup — explain the situation and why it matters
-3. The truth — what the law actually says, surprising facts
-4. Real example — a story or scenario that makes it real
-5. Consequence — what happens if you get this wrong
-6. Your rights — exactly what you can do
-7. Step by step — what to do right now
-8. Close — recap + call to subscribe
+- Hook in first 5 seconds
+- Every 20-30 seconds add curiosity
+- Use simple language
+- Emotional triggers
+- Real scenarios
 
 STRICT RULES:
 - Write ONLY the spoken words
-- No brackets, no stage directions, no section headers
-- Flow naturally like someone talking to a friend
-- Be specific with numbers, timelines, dollar amounts
+- No brackets, no stage directions
 - Target word count: {config['words']} words
 
 Topic: {topic}"""
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
         max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}]
     )
 
-    script = response.content[0].text
+    script = response.choices[0].message.content
     word_count = len(script.split())
     print(f"Script generated: {word_count} words (~{round(word_count/130)} minutes)")
     return script, config["label"]
 
 async def generate_voice(script, output_file="voice.mp3", voice="en-US-GuyNeural"):
-    """Convierte el guion a voz con Edge TTS"""
     print(f"Generating voice ({voice})...")
     communicate = edge_tts.Communicate(script, voice=voice)
     await communicate.save(output_file)
     print(f"Voice saved to {output_file}")
 
 def get_next_topic():
-    """Rota los temas automáticamente"""
     tracker_file = "topic_tracker.txt"
 
     if not os.path.exists(tracker_file):
